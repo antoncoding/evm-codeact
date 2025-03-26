@@ -40,8 +40,6 @@ def get_abi(contract_address: str) -> Dict[str, Any]:
     
     data = response.json()
 
-    print(data)
-
     if data["status"] != "1":
         raise Exception(f"API Error: {data.get('message', 'Unknown error')}")
     
@@ -63,7 +61,7 @@ def call_function(contract_address: str, function_name: str, *args, is_read: boo
         is_read: If True, performs a read operation (call). If False, performs a write operation (transact)
     
     Returns:
-        For read operations: The function's return value
+        For read operations: The function's return value (converted to string if it's a large number)
         For write operations: The transaction hash
     """
     # Validate contract address
@@ -85,7 +83,11 @@ def call_function(contract_address: str, function_name: str, *args, is_read: boo
     try:
         if is_read:
             # Read operation (call)
-            return function(*args).call()
+            result = function(*args).call()
+            # Convert large numbers to string
+            if isinstance(result, (int, float)) and result > 2**63 - 1:
+                return str(result)
+            return result
         else:
             # Write operation (transact)
             # Note: For write operations, you'll need to handle private key and gas settings
@@ -95,11 +97,12 @@ def call_function(contract_address: str, function_name: str, *args, is_read: boo
     except Exception as e:
         raise Exception(f"Failed to call function {function_name}: {str(e)}")
 
-def get_balance(contract_address: str) -> int:
+def get_balance(contract_address: str) -> str:
     """Get the ETH balance of a contract."""
     if not web3_client.is_address(contract_address):
         raise ValueError(f"Invalid contract address: {contract_address}")
-    return web3_client.eth.get_balance(contract_address)
+    balance = web3_client.eth.get_balance(contract_address)
+    return str(balance)  # Convert to string to handle large numbers
 
 # Tool wrappers
 @tool
@@ -113,6 +116,6 @@ def call_contract_function_tool(contract_address: str, function_name: str, *args
     return call_function(contract_address, function_name, *args, is_read=is_read)
 
 @tool
-def get_contract_balance_tool(contract_address: str) -> int:
+def get_contract_balance_tool(contract_address: str) -> str:
     """Tool wrapper for getting contract balance."""
     return get_balance(contract_address) 

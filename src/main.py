@@ -7,7 +7,6 @@ from langgraph_codeact import create_codeact
 from langgraph.checkpoint.memory import MemorySaver
 from tools.evm_tools import (
     get_contract_abi_tool,
-    get_contract_functions_tool,
     call_contract_function_tool,
     get_contract_balance_tool
 )
@@ -29,7 +28,6 @@ def initialize_agent():
     # Create CodeAct graph with tools
     code_act = create_codeact(model, [
         get_contract_abi_tool,
-        get_contract_functions_tool,
         call_contract_function_tool,
         get_contract_balance_tool
     ], eval_in_sandbox)
