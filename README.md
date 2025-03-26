@@ -34,10 +34,9 @@ python src/main.py
 
 ## Example Queries
 
-- "Get the balance of contract: 0x1234..."
-- "List all functions in contract: 0x1234..."
-- "Get the ABI of contract: 0x1234..."
-- "Call function 'balanceOf' on contract: 0x1234..."
+- "What does the contract 0xabcd... do?"
+- "Is this contract 0xabcd... still frequently used?"
+- "My address is {}, how to i withdraw from contract {}"
 
 ## Development
 
