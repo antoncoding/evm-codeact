@@ -1,58 +1,38 @@
 import os
+import signal
+import sys
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langgraph_codeact import create_codeact
 from langgraph.checkpoint.memory import MemorySaver
-from tools.evm_tools import EVMTools
+from tools.evm_tools import (
+    get_contract_abi_tool,
+    get_contract_functions_tool,
+    call_contract_function_tool,
+    get_contract_balance_tool
+)
+from sandbox import eval_in_sandbox
 
 # Load environment variables
 load_dotenv()
 
-def create_sandbox(code: str, _locals: dict) -> tuple[str, dict]:
-    """Simple sandbox for code execution."""
-    import builtins
-    import contextlib
-    import io
-    from typing import Any
-
-    # Store original keys before execution
-    original_keys = set(_locals.keys())
-
-    try:
-        with contextlib.redirect_stdout(io.StringIO()) as f:
-            exec(code, builtins.__dict__, _locals)
-        result = f.getvalue()
-        if not result:
-            result = "<code ran, no output printed to stdout>"
-    except Exception as e:
-        result = f"Error during execution: {repr(e)}"
-
-    # Determine new variables created during execution
-    new_keys = set(_locals.keys()) - original_keys
-    new_vars = {key: _locals[key] for key in new_keys}
-    return result, new_vars
+def signal_handler(signum, frame):
+    """Handle Ctrl+C gracefully."""
+    print("\n\nGoodbye! 👋")
+    sys.exit(0)
 
 def initialize_agent():
     """Initialize the CodeAct agent with EVM tools."""
-    # Initialize Web3 provider
-    web3_provider_uri = os.getenv("RPC_URL")
-    if not web3_provider_uri:
-        raise ValueError("RPC_URL environment variable not set")
-    
-    # Initialize EVM tools
-    evm_tools = EVMTools(web3_provider_uri)
-    tools = [
-        evm_tools.get_contract_abi,
-        evm_tools.get_contract_functions,
-        evm_tools.call_contract_function,
-        evm_tools.get_contract_balance,
-    ]
-
     # Initialize the model
     model = init_chat_model("claude-3-7-sonnet-latest", model_provider="anthropic")
 
-    # Create CodeAct graph
-    code_act = create_codeact(model, tools, create_sandbox)
+    # Create CodeAct graph with tools
+    code_act = create_codeact(model, [
+        get_contract_abi_tool,
+        get_contract_functions_tool,
+        call_contract_function_tool,
+        get_contract_balance_tool
+    ], eval_in_sandbox)
     return code_act.compile(checkpointer=MemorySaver())
 
 def print_welcome():
@@ -64,10 +44,18 @@ def print_welcome():
     print("- List all functions in contract: 0x1234...")
     print("- Get the ABI of contract: 0x1234...")
     print("- Call function 'balanceOf' on contract: 0x1234...")
-    print("\nType 'exit' to quit")
+    print("\nType 'exit' to quit or press Ctrl+C to force quit")
     print("=" * 30 + "\n")
 
+def format_message(content: str, role: str) -> str:
+    """Format a message with appropriate icon and styling."""
+    icon = "👤" if role == "user" else "🤖"
+    return f"{icon} {content}"
+
 def main():
+    # Set up signal handler for Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
+    
     try:
         # Initialize the agent
         agent = initialize_agent()
@@ -77,45 +65,62 @@ def main():
         messages = []
 
         while True:
-            # Get user input
-            user_input = input("\nYour question: ").strip()
-            
-            if user_input.lower() in ['exit', 'quit', 'q']:
-                print("\nGoodbye!")
+            try:
+                # Get user input
+                user_input = input("\n👤 ").strip()
+                
+                if user_input.lower() in ['exit', 'quit', 'q']:
+                    print("\nGoodbye! 👋")
+                    break
+
+                if not user_input:
+                    continue
+
+                # Add user message to history
+                messages.append({
+                    "role": "user",
+                    "content": user_input
+                })
+
+                # Process the message and stream the response
+                print("\n🤖 ", end="")
+                last_content = ""
+                
+                for typ, chunk in agent.stream(
+                    {"messages": messages},
+                    stream_mode=["values", "messages"],
+                    config={"configurable": {"thread_id": 1}},
+                ):
+                    if typ == "messages":
+                        content = chunk[0].content
+                        if content != last_content:
+                            print(content, end="")
+                            last_content = content
+                    elif typ == "values":
+                        # Only print the actual content, not the full response object
+                        if isinstance(chunk, dict) and 'messages' in chunk:
+                            last_message = chunk['messages'][-1]
+                            if hasattr(last_message, 'content'):
+                                print(last_message.content, end="")
+                                last_content = last_message.content
+
+                print()  # New line after response
+
+                # Add assistant's response to history
+                messages.append({
+                    "role": "assistant",
+                    "content": last_content
+                })
+
+            except KeyboardInterrupt:
+                # Handle Ctrl+C during input or processing
+                print("\n\nGoodbye! 👋")
                 break
 
-            if not user_input:
-                continue
-
-            # Add user message to history
-            messages.append({
-                "role": "user",
-                "content": user_input
-            })
-
-            # Process the message and stream the response
-            print("\nAgent's response:")
-            for typ, chunk in agent.stream(
-                {"messages": messages},
-                stream_mode=["values", "messages"],
-                config={"configurable": {"thread_id": 1}},
-            ):
-                if typ == "messages":
-                    print(chunk[0].content, end="")
-                elif typ == "values":
-                    print("\n\n---answer---\n\n", chunk)
-
-            # Add assistant's response to history
-            messages.append({
-                "role": "assistant",
-                "content": chunk if typ == "values" else chunk[0].content
-            })
-
-    except KeyboardInterrupt:
-        print("\n\nGoodbye!")
     except Exception as e:
         print(f"\nError: {str(e)}")
-        print("Please make sure your RPC_URL environment variable is set correctly.")
+        print("Please make sure your RPC_URL and ETHERSCAN_API_KEY environment variables are set correctly.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 
