@@ -5,6 +5,8 @@ import os
 import requests
 from dotenv import load_dotenv
 import json
+from eth_utils.toolz import assoc
+from eth_utils import to_dict
 # Load environment variables
 load_dotenv()
 
@@ -137,6 +139,22 @@ def call_function(contract_address: str, function_name: str, *args, is_read: boo
     except Exception as e:
         raise Exception(f"Failed to call function {function_name}: {str(e)}")
 
+def _convert_to_serializable(obj: Any) -> Any:
+    """Convert an object to a serializable format.
+    
+    Args:
+        obj: The object to convert
+        
+    Returns:
+        A serializable version of the object
+    """
+    if hasattr(obj, 'to_dict'):
+        return obj.to_dict()
+    elif isinstance(obj, dict):
+        return {k: _convert_to_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_convert_to_serializable(item) for item in obj]
+    return obj
 
 def get_events(contract_address: str, event_name: str, from_block: Optional[int] = None, to_block: Optional[int] = None) -> List[Dict[str, Any]]:
     """
@@ -173,7 +191,7 @@ def get_events(contract_address: str, event_name: str, from_block: Optional[int]
     try:
         # Get events
         events = event.get_logs(from_block=from_block, to_block=to_block)
-        return [dict(event) for event in events]
+        return [_convert_to_serializable(event) for event in events]
     except Exception as e:
         raise Exception(f"Failed to get events: {str(e)}")
 
@@ -195,7 +213,7 @@ def get_transaction_receipt(tx_hash: str) -> Dict[str, Any]:
             tx_hash = web3_client.to_bytes(hexstr=tx_hash)
         
         receipt = web3_client.eth.get_transaction_receipt(tx_hash)
-        return dict(receipt)
+        return _convert_to_serializable(receipt)
     except Exception as e:
         raise Exception(f"Failed to get transaction receipt: {str(e)}")
 
@@ -218,4 +236,9 @@ def get_contract_events_tool(contract_address: str, event_name: str, from_block:
 @tool
 def get_transaction_receipt_tool(tx_hash: str) -> Dict[str, Any]:
     """Tool wrapper for getting transaction receipt."""
-    return get_transaction_receipt(tx_hash) 
+    return get_transaction_receipt(tx_hash)
+
+@tool
+def get_source_code_tool(contract_address: str) -> Dict[str, Any]:
+    """Tool wrapper for getting contract source code from Basescan."""
+    return get_source_code(contract_address) 

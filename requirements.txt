@@ -1,5 +1,5 @@
 langgraph-codeact>=0.1.0
-langchain>=0.3.21
+langchain>=0.3.20
 web3>=6.11.1
 python-dotenv>=1.0.0 
 langchain-anthropic>=0.3.10

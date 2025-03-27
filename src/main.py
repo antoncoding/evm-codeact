@@ -6,6 +6,7 @@ from langchain.chat_models import init_chat_model
 from langgraph_codeact import create_codeact, create_default_prompt
 from langgraph.checkpoint.memory import MemorySaver
 from tools.evm_tools import (
+    get_source_code_tool,
     get_contract_abi_tool,
     call_contract_function_tool,
     get_contract_events_tool,
@@ -13,6 +14,7 @@ from tools.evm_tools import (
 )
 from sandbox import eval_in_sandbox
 from prompt import ADDITIONAL_PROMPT
+
 # Load environment variables
 load_dotenv()
 
@@ -23,10 +25,17 @@ def signal_handler(signum, frame):
 
 def initialize_agent():
     """Initialize the CodeAct agent with EVM tools."""
-    # Initialize the model
-    model = init_chat_model("claude-3-7-sonnet-latest", model_provider="anthropic")
+    # Create logs directory if it doesn't exist
+    os.makedirs("logs", exist_ok=True)
+    
+    # Initialize the model without streaming
+    model = init_chat_model(
+        "claude-3-7-sonnet-latest", 
+        model_provider="anthropic",
+    )
 
     tools = [
+        get_source_code_tool,
         get_contract_abi_tool,
         call_contract_function_tool,
         get_contract_events_tool,
