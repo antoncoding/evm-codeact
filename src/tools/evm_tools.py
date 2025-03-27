@@ -15,12 +15,34 @@ if not RPC_URL:
 
 web3_client = Web3(Web3.HTTPProvider(RPC_URL))
 
-def get_abi(contract_address: str) -> Dict[str, Any]:
-    """Get the ABI of a contract from Basescan."""
+def _make_basescan_request(params: Dict[str, str]) -> Dict[str, Any]:
+    """Helper function to make requests to Basescan API.
+    
+    Args:
+        params: Dictionary of parameters to send to the API
+    
+    Returns:
+        API response data as dictionary
+    """
     api_key = os.getenv("ETHERSCAN_API_KEY")
     if not api_key:
         raise ValueError("ETHERSCAN_API_KEY environment variable not set")
     
+    url = "https://api.basescan.org/api"
+    params["apikey"] = api_key
+    
+    response = requests.get(url, params=params)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch data: {response.text}")
+    
+    data = response.json()
+    if data["status"] != "1":
+        raise Exception(f"API Error: {data.get('message', 'Unknown error')}")
+    
+    return data
+
+def get_abi(contract_address: str) -> Dict[str, Any]:
+    """Get the ABI of a contract from Basescan."""
     # Validate contract address
     try:
         contract_address = web3_client.to_checksum_address(contract_address)
@@ -28,22 +50,13 @@ def get_abi(contract_address: str) -> Dict[str, Any]:
         raise ValueError(f"Invalid contract address: {contract_address}")
     
     # Call Basescan API
-    url = "https://api.basescan.org/api"
     params = {
         "module": "contract",
         "action": "getabi",
         "address": contract_address,
-        "apikey": api_key
     }
     
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch ABI: {response.text}")
-    
-    data = response.json()
-
-    if data["status"] != "1":
-        raise Exception(f"API Error: {data.get('message', 'Unknown error')}")
+    data = _make_basescan_request(params)
     
     # Parse the ABI string into a Python object
     try:
@@ -51,6 +64,29 @@ def get_abi(contract_address: str) -> Dict[str, Any]:
         return abi
     except Exception as e:
         raise Exception(f"Failed to parse ABI: {str(e)}")
+
+def get_source_code(contract_address: str) -> Dict[str, Any]:
+    """Get the Source code of a contract from Basescan. Only used when you need to understand the logic"""
+    # Validate contract address
+    try:
+        contract_address = web3_client.to_checksum_address(contract_address)
+    except Exception as e:
+        raise ValueError(f"Invalid contract address: {contract_address}")
+    
+    # Call Basescan API
+    params = {
+        "module": "contract",
+        "action": "getsourcecode",
+        "address": contract_address,
+    }
+    
+    data = _make_basescan_request(params)
+    
+    # The result is now a list with a single item containing the contract details
+    if not data["result"] or not isinstance(data["result"], list):
+        raise Exception("No source code found for this contract")
+    
+    return data["result"][0]
 
 def call_function(contract_address: str, function_name: str, *args, is_read: bool = True) -> Union[Any, str]:
     """

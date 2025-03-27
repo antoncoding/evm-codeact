@@ -47,10 +47,8 @@ def print_welcome():
     print("\n=== EVM CodeAct Agent ===")
     print("Ask me anything about Ethereum contracts!")
     print("\nExample queries:")
-    print("- Get the balance of contract: 0x1234...")
-    print("- List all functions in contract: 0x1234...")
-    print("- Get the ABI of contract: 0x1234...")
-    print("- Call function 'balanceOf' on contract: 0x1234...")
+    print("What does this transaction {0x...} do?")
+    print("How to withdraw from this contract {0x...}?")
     print("\nType 'exit' to quit or press Ctrl+C to force quit")
     print("=" * 30 + "\n")
 
