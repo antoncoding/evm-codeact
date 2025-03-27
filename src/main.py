@@ -3,17 +3,16 @@ import signal
 import sys
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
-from langgraph_codeact import create_codeact
+from langgraph_codeact import create_codeact, create_default_prompt
 from langgraph.checkpoint.memory import MemorySaver
 from tools.evm_tools import (
     get_contract_abi_tool,
     call_contract_function_tool,
-    get_contract_balance_tool,
     get_contract_events_tool,
     get_transaction_receipt_tool
 )
 from sandbox import eval_in_sandbox
-
+from prompt import ADDITIONAL_PROMPT
 # Load environment variables
 load_dotenv()
 
@@ -27,14 +26,20 @@ def initialize_agent():
     # Initialize the model
     model = init_chat_model("claude-3-7-sonnet-latest", model_provider="anthropic")
 
-    # Create CodeAct graph with tools
-    code_act = create_codeact(model, [
+    tools = [
         get_contract_abi_tool,
         call_contract_function_tool,
-        get_contract_balance_tool,
         get_contract_events_tool,
         get_transaction_receipt_tool
-    ], eval_in_sandbox)
+    ]
+
+    # Create CodeAct graph with tools
+    code_act = create_codeact(
+        model = model,
+        tools = tools,
+        eval_fn= eval_in_sandbox,
+        prompt = create_default_prompt(tools, ADDITIONAL_PROMPT)
+    )
     return code_act.compile(checkpointer=MemorySaver())
 
 def print_welcome():
@@ -90,7 +95,7 @@ def main():
                 
                 for typ, chunk in agent.stream(
                     {"messages": messages},
-                    stream_mode=["values", "messages"],
+                    stream_mode=["messages"],
                     config={"configurable": {"thread_id": 1}},
                 ):
                     if typ == "messages":
@@ -98,21 +103,15 @@ def main():
                         if content != last_content:
                             print(content, end="")
                             last_content = content
-                    elif typ == "values":
-                        # Only print the actual content, not the full response object
-                        if isinstance(chunk, dict) and 'messages' in chunk:
-                            last_message = chunk['messages'][-1]
-                            if hasattr(last_message, 'content'):
-                                print(last_message.content, end="")
-                                last_content = last_message.content
 
                 print()  # New line after response
 
-                # Add assistant's response to history
-                messages.append({
-                    "role": "assistant",
-                    "content": last_content
-                })
+                # Add assistant's response to history only if we have content
+                if last_content:
+                    messages.append({
+                        "role": "assistant",
+                        "content": last_content
+                    })
 
             except KeyboardInterrupt:
                 # Handle Ctrl+C during input or processing
@@ -120,8 +119,7 @@ def main():
                 break
 
     except Exception as e:
-        print(f"\nError: {str(e)}")
-        print("Please make sure your RPC_URL and ETHERSCAN_API_KEY environment variables are set correctly.")
+        print(f"\n Main Thread Error: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":

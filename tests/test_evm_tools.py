@@ -1,5 +1,5 @@
 import pytest
-from src.tools.evm_tools import get_abi, get_balance, call_function, get_events, get_transaction_receipt
+from src.tools.evm_tools import get_abi, call_function, get_events, get_transaction_receipt
 
 # Test contract address (USDT on Base), non-checksum version
 TEST_CONTRACT = "0x50c5725949a6f0c72e6c4a641f24049a917db0cb"
@@ -20,12 +20,6 @@ def test_get_abi():
     assert 'balanceOf' in function_names
     assert 'transfer' in function_names
     assert 'approve' in function_names
-
-def test_get_balance():
-    """Test getting contract balance."""
-    balance = get_balance(TEST_CONTRACT)
-    assert isinstance(balance, str)  # Now returns string
-    assert int(balance) >= 0
 
 def test_call_function():
     """Test calling contract functions."""
@@ -68,9 +62,6 @@ def test_invalid_address():
     
     with pytest.raises(ValueError, match="Invalid contract address"):
         get_abi(invalid_address)
-    
-    with pytest.raises(ValueError, match="Invalid contract address"):
-        get_balance(invalid_address)
     
     with pytest.raises(ValueError, match="Invalid contract address"):
         call_function(invalid_address, "balanceOf", invalid_address)

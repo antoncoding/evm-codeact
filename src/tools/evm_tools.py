@@ -101,16 +101,6 @@ def call_function(contract_address: str, function_name: str, *args, is_read: boo
     except Exception as e:
         raise Exception(f"Failed to call function {function_name}: {str(e)}")
 
-def get_balance(contract_address: str) -> str:
-    """Get the ETH balance of a contract."""
-    # Validate contract address
-    try:
-        contract_address = web3_client.to_checksum_address(contract_address)
-    except Exception as e:
-        raise ValueError(f"Invalid contract address: {contract_address}")
-    
-    balance = web3_client.eth.get_balance(contract_address)
-    return str(balance)  # Convert to string to handle large numbers
 
 def get_events(contract_address: str, event_name: str, from_block: Optional[int] = None, to_block: Optional[int] = None) -> List[Dict[str, Any]]:
     """
@@ -183,11 +173,6 @@ def get_contract_abi_tool(contract_address: str) -> Dict[str, Any]:
 def call_contract_function_tool(contract_address: str, function_name: str, *args, is_read: bool = True) -> Union[Any, str]:
     """Tool wrapper for calling contract functions."""
     return call_function(contract_address, function_name, *args, is_read=is_read)
-
-@tool
-def get_contract_balance_tool(contract_address: str) -> str:
-    """Tool wrapper for getting contract balance."""
-    return get_balance(contract_address)
 
 @tool
 def get_contract_events_tool(contract_address: str, event_name: str, from_block: Optional[int] = None, to_block: Optional[int] = None) -> List[Dict[str, Any]]:
