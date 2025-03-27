@@ -46,7 +46,12 @@ python src/main.py
 
 ## Development
 
-This is a proof-of-concept project. Contributions are welcome!
+Contributions are welcome! This project showcases the capabilities of the CodeAct architecture, which is used by [Manus](https://manus.im/), a recently popular AI agent platform.
+
+To run the tests:
+```bash
+pytest tests/test_evm_tools.py -v
+```
 
 ## License
 
