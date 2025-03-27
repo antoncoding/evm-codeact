@@ -1,13 +1,18 @@
 import pytest
 from src.tools.evm_tools import get_abi, call_function, get_events, get_transaction_receipt
 
-# Test contract address (USDT on Base), non-checksum version
+# Test contract on Baes: USDT
 TEST_CONTRACT = "0x50c5725949a6f0c72e6c4a641f24049a917db0cb"
 TEST_CHAIN_ID = 8453
 TEST_ACC = "0x20b2630f501BEE7d69e401D3ABA40636d1BD1B09"
 
+# Test contract address on mainnet: UniswawpV4 Router
+TEST_CONTRACT_MAINNET = "0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af"
+
 # Test transaction hash (a known transaction on Base)
 TEST_TX_HASH = "0x9af335f5bfe18ba83a45dddf8f0e0b2924c0d1cb907f07a2da263b08a31badba"
+
+TEST_TX_MAINNET = "0x52c99a26848578dd9214c4249b7d365fd67b2500e22a6a37a6c5adb44600410b"
 
 def test_get_abi():
     """Test getting contract ABI."""
@@ -20,6 +25,10 @@ def test_get_abi():
     assert 'balanceOf' in function_names
     assert 'transfer' in function_names
     assert 'approve' in function_names
+
+    abi_mainnet = get_abi(TEST_CONTRACT_MAINNET, 1)
+    assert isinstance(abi_mainnet, list)
+    assert len(abi_mainnet) > 0
 
 def test_call_function():
     """Test calling contract functions."""
@@ -55,6 +64,9 @@ def test_get_transaction_receipt():
     assert 'transactionHash' in receipt
     assert 'status' in receipt
     assert 'gasUsed' in receipt
+
+    receipt_mainnet = get_transaction_receipt(TEST_TX_MAINNET, 1)
+    assert isinstance(receipt_mainnet, dict)
 
 def test_invalid_address():
     """Test handling of invalid addresses."""

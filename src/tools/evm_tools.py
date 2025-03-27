@@ -35,7 +35,7 @@ def _get_web3_client(chain_id: int) -> Web3:
     
     return Web3(Web3.HTTPProvider(CHAIN_RPC_URLS[chain_id]))
 
-def _make_basescan_request(chain_id: int,params: Dict[str, str]) -> Dict[str, Any]:
+def _make_infura_request(chain_id: int,params: Dict[str, str]) -> Dict[str, Any]:
     """Helper function to make requests to Etherscan API.
     
     Args:
@@ -49,8 +49,9 @@ def _make_basescan_request(chain_id: int,params: Dict[str, str]) -> Dict[str, An
     if not api_key:
         raise ValueError("ETHERSCAN_API_KEY environment variable not set")
     
-    url = f"https://api.etherscan.io/v2/api?chainid={chain_id}"
+    url = f"https://api.etherscan.io/v2/api"
     params["apikey"] = api_key
+    params["chainid"] = chain_id
     
     max_retries = 3
     retry_delay = 1  # seconds
@@ -96,7 +97,7 @@ def get_abi(contract_address: str, chain_id: int) -> Dict[str, Any]:
         "address": contract_address,
     }
     
-    data = _make_basescan_request(chain_id, params)
+    data = _make_infura_request(chain_id, params)
     
     # Parse the ABI string into a Python object
     try:
@@ -122,7 +123,7 @@ def get_source_code(contract_address: str, chain_id: int) -> Dict[str, Any]:
         "address": contract_address,
     }
     
-    data = _make_basescan_request(chain_id, params)
+    data = _make_infura_request(chain_id, params)
     
     # The result is now a list with a single item containing the contract details
     if not data["result"] or not isinstance(data["result"], list):
@@ -130,7 +131,7 @@ def get_source_code(contract_address: str, chain_id: int) -> Dict[str, Any]:
     
     return data["result"][0]
 
-def call_function(contract_address: str, function_name: str, *args, chain_id: int = 8453, is_read: bool = True) -> Union[Any, str]:
+def call_function(contract_address: str, function_name: str, *args, chain_id, is_read: bool = True) -> Union[Any, str]:
     """
     Call a contract function with given arguments.
     
@@ -286,7 +287,7 @@ def get_contract_events_tool(contract_address: str, event_name: str, from_block:
     return get_events(contract_address, event_name, from_block, to_block, chain_id=chain_id)
 
 @tool
-def get_transaction_receipt_tool(tx_hash: str, chain_id: int = 8453) -> Dict[str, Any]:
+def get_transaction_receipt_tool(tx_hash: str, chain_id: int) -> Dict[str, Any]:
     """Tool wrapper for getting transaction receipt."""
     return get_transaction_receipt(tx_hash, chain_id)
 
