@@ -97,16 +97,23 @@ def main():
                 print("\n🤖 ", end="")
                 last_content = ""
                 
-                for typ, chunk in agent.stream(
-                    {"messages": [message]},
-                    stream_mode=["messages"],
-                    config={"configurable": {"thread_id": 1}},
-                ):
-                    if typ == "messages":
-                        content = chunk[0].content
-                        if content != last_content:
-                            print(content, end="")
-                            last_content = content
+                try:
+                    for typ, chunk in agent.stream(
+                        {"messages": [message]},
+                        stream_mode=["messages"],
+                        config={"configurable": {"thread_id": 1}},
+                    ):
+                        if typ == "messages":
+                            content = chunk[0].content
+                            if content != last_content:
+                                print(content, end="")
+                                last_content = content
+                except Exception as e:
+                    if "overloaded_error" in str(e):
+                        print("\nService is currently overloaded. Please wait a moment and try again.")
+                    else:
+                        print(f"\nError processing request: {str(e)}")
+                    continue
 
                 print()  # New line after response
 

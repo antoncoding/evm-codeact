@@ -38,7 +38,7 @@ uv pip install -r requirements.txt
 
 2. Set up environment variables in `.env`:
 ```
-RPC_URL="your_ethereum_node_url"
+ALCHEMY_API_KEY="alchemy key"
 ETHERSCAN_API_KEY="your_etherscan_api_key"
 ```
 

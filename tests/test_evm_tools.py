@@ -3,7 +3,7 @@ from src.tools.evm_tools import get_abi, call_function, get_events, get_transact
 
 # Test contract address (USDT on Base), non-checksum version
 TEST_CONTRACT = "0x50c5725949a6f0c72e6c4a641f24049a917db0cb"
-
+TEST_CHAIN_ID = 8453
 TEST_ACC = "0x20b2630f501BEE7d69e401D3ABA40636d1BD1B09"
 
 # Test transaction hash (a known transaction on Base)
@@ -11,7 +11,7 @@ TEST_TX_HASH = "0x9af335f5bfe18ba83a45dddf8f0e0b2924c0d1cb907f07a2da263b08a31bad
 
 def test_get_abi():
     """Test getting contract ABI."""
-    abi = get_abi(TEST_CONTRACT)
+    abi = get_abi(TEST_CONTRACT, TEST_CHAIN_ID)
     assert isinstance(abi, list)
     assert len(abi) > 0
     
@@ -24,12 +24,12 @@ def test_get_abi():
 def test_call_function():
     """Test calling contract functions."""
     # Test balanceOf function
-    balance = call_function(TEST_CONTRACT, "balanceOf", TEST_ACC)
+    balance = call_function(TEST_CONTRACT, "balanceOf", TEST_ACC, chain_id=TEST_CHAIN_ID)
     assert isinstance(balance, (int, str))  # Can be int or string for large numbers
     assert int(balance) >= 0
     
     # Test name function
-    name = call_function(TEST_CONTRACT, "name")
+    name = call_function(TEST_CONTRACT, "name", chain_id=TEST_CHAIN_ID)
     assert isinstance(name, str)
     assert name == "Dai Stablecoin"
 
@@ -49,7 +49,7 @@ def test_get_events():
 
 def test_get_transaction_receipt():
     """Test getting transaction receipt."""
-    receipt = get_transaction_receipt(TEST_TX_HASH)
+    receipt = get_transaction_receipt(TEST_TX_HASH, TEST_CHAIN_ID)
     assert isinstance(receipt, dict)
     assert 'blockNumber' in receipt
     assert 'transactionHash' in receipt
@@ -61,26 +61,26 @@ def test_invalid_address():
     invalid_address = "0xinvalid"
     
     with pytest.raises(ValueError, match="Invalid contract address"):
-        get_abi(invalid_address)
+        get_abi(invalid_address, TEST_CHAIN_ID)
     
     with pytest.raises(ValueError, match="Invalid contract address"):
-        call_function(invalid_address, "balanceOf", invalid_address)
+        call_function(invalid_address, "balanceOf", invalid_address, chain_id=TEST_CHAIN_ID)
     
     with pytest.raises(ValueError, match="Invalid contract address"):
-        get_events(invalid_address, "Transfer")
+        get_events(invalid_address, "Transfer", chain_id=TEST_CHAIN_ID)
 
 def test_nonexistent_function():
     """Test calling non-existent function."""
     with pytest.raises(ValueError, match="Function nonexistent not found in contract"):
-        call_function(TEST_CONTRACT, "nonexistent")
+        call_function(TEST_CONTRACT, "nonexistent", chain_id=TEST_CHAIN_ID)
 
 def test_nonexistent_event():
     """Test getting non-existent event."""
     with pytest.raises(ValueError, match="Event Nonexistent not found in contract"):
-        get_events(TEST_CONTRACT, "Nonexistent")
+        get_events(TEST_CONTRACT, "Nonexistent", chain_id=TEST_CHAIN_ID)
 
 def test_invalid_transaction_hash():
     """Test getting receipt for invalid transaction hash."""
     invalid_hash = "0xinvalid"
     with pytest.raises(Exception):
-        get_transaction_receipt(invalid_hash) 
+        get_transaction_receipt(invalid_hash, chain_id=TEST_CHAIN_ID) 
