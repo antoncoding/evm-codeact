@@ -22,7 +22,9 @@ def get_abi(contract_address: str) -> Dict[str, Any]:
         raise ValueError("ETHERSCAN_API_KEY environment variable not set")
     
     # Validate contract address
-    if not web3_client.is_address(contract_address):
+    try:
+        contract_address = web3_client.to_checksum_address(contract_address)
+    except Exception as e:
         raise ValueError(f"Invalid contract address: {contract_address}")
     
     # Call Basescan API
@@ -65,7 +67,9 @@ def call_function(contract_address: str, function_name: str, *args, is_read: boo
         For write operations: The transaction hash
     """
     # Validate contract address
-    if not web3_client.is_address(contract_address):
+    try:
+        contract_address = web3_client.to_checksum_address(contract_address)
+    except Exception as e:
         raise ValueError(f"Invalid contract address: {contract_address}")
     
     # Get contract ABI
@@ -99,10 +103,75 @@ def call_function(contract_address: str, function_name: str, *args, is_read: boo
 
 def get_balance(contract_address: str) -> str:
     """Get the ETH balance of a contract."""
-    if not web3_client.is_address(contract_address):
+    # Validate contract address
+    try:
+        contract_address = web3_client.to_checksum_address(contract_address)
+    except Exception as e:
         raise ValueError(f"Invalid contract address: {contract_address}")
+    
     balance = web3_client.eth.get_balance(contract_address)
     return str(balance)  # Convert to string to handle large numbers
+
+def get_events(contract_address: str, event_name: str, from_block: Optional[int] = None, to_block: Optional[int] = None) -> List[Dict[str, Any]]:
+    """
+    Get events emitted by a contract.
+    
+    Args:
+        contract_address: The address of the contract
+        event_name: Name of the event to search for
+        from_block: Starting block number (optional)
+        to_block: Ending block number (optional)
+    
+    Returns:
+        List of event logs
+    """
+
+    # Validate contract address
+    try:
+        contract_address = web3_client.to_checksum_address(contract_address)
+    except Exception as e:
+        raise ValueError(f"Invalid contract address: {contract_address}")
+    
+    # Get contract ABI
+    abi = get_abi(contract_address)
+    
+    # Create contract instance
+    contract = web3_client.eth.contract(address=contract_address, abi=abi)
+    
+    # Get the event
+    if not hasattr(contract.events, event_name):
+        raise ValueError(f"Event {event_name} not found in contract")
+    
+    event = getattr(contract.events, event_name)
+    
+    try:
+        # Get events
+        events = event.get_logs(from_block=from_block, to_block=to_block)
+        return [dict(event) for event in events]
+    except Exception as e:
+        raise Exception(f"Failed to get events: {str(e)}")
+
+def get_transaction_receipt(tx_hash: str) -> Dict[str, Any]:
+    """
+    Get the receipt of a transaction.
+    
+    Args:
+        tx_hash: The transaction hash
+    
+    Returns:
+        Transaction receipt as a dictionary
+    """
+    try:
+        # Convert hex string to bytes if needed
+        if isinstance(tx_hash, str):
+            if not tx_hash.startswith('0x'):
+                tx_hash = '0x' + tx_hash
+            tx_hash = web3_client.to_bytes(hexstr=tx_hash)
+        
+        receipt = web3_client.eth.get_transaction_receipt(tx_hash)
+        return dict(receipt)
+    except Exception as e:
+        raise Exception(f"Failed to get transaction receipt: {str(e)}")
 
 # Tool wrappers
 @tool
@@ -118,4 +187,14 @@ def call_contract_function_tool(contract_address: str, function_name: str, *args
 @tool
 def get_contract_balance_tool(contract_address: str) -> str:
     """Tool wrapper for getting contract balance."""
-    return get_balance(contract_address) 
+    return get_balance(contract_address)
+
+@tool
+def get_contract_events_tool(contract_address: str, event_name: str, from_block: Optional[int] = None, to_block: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Tool wrapper for getting contract events."""
+    return get_events(contract_address, event_name, from_block, to_block)
+
+@tool
+def get_transaction_receipt_tool(tx_hash: str) -> Dict[str, Any]:
+    """Tool wrapper for getting transaction receipt."""
+    return get_transaction_receipt(tx_hash) 

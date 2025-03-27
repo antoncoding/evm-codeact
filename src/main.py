@@ -8,7 +8,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from tools.evm_tools import (
     get_contract_abi_tool,
     call_contract_function_tool,
-    get_contract_balance_tool
+    get_contract_balance_tool,
+    get_contract_events_tool,
+    get_transaction_receipt_tool
 )
 from sandbox import eval_in_sandbox
 
@@ -29,7 +31,9 @@ def initialize_agent():
     code_act = create_codeact(model, [
         get_contract_abi_tool,
         call_contract_function_tool,
-        get_contract_balance_tool
+        get_contract_balance_tool,
+        get_contract_events_tool,
+        get_transaction_receipt_tool
     ], eval_in_sandbox)
     return code_act.compile(checkpointer=MemorySaver())
 
