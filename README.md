@@ -1,6 +1,6 @@
 # EVM CodeAct
 
-An AI agent that can interact with Ethereum smart contracts using natural language. Built with [langgraph-codeact](https://github.com/langchain-ai/langgraph-codeact), implementing the CodeAct architecture.
+A demonstration of how CodeAct can be used to analyze and interact with Ethereum smart contracts using natural language. Built with [langgraph-codeact](https://github.com/langchain-ai/langgraph-codeact), this project showcases how CodeAct's ability to write and analyze code makes it particularly powerful in the Web3 ecosystem.
 
 ## About CodeAct
 
@@ -11,6 +11,21 @@ CodeAct is an alternative to JSON function-calling that enables solving complex 
 - Streaming token-by-token output
 - Customizable system messages
 - Flexible code sandbox integration
+
+## Why Web3 is Perfect for CodeAct
+
+Web3 presents an ideal playground for CodeAct because:
+- Smart contracts are self-contained, verifiable code
+- All contract source code is publicly available
+- Contract interactions follow well-defined patterns
+- Results are deterministic and verifiable
+- The agent can analyze both code and on-chain data
+
+This project demonstrates how CodeAct can:
+- Read and analyze smart contract source code
+- Understand contract functionality through code inspection
+- Generate code to interact with contracts
+- Process and analyze transaction data
 
 ## Quick Start
 
@@ -39,7 +54,7 @@ python src/main.py
 
 ## Development
 
-Contributions are welcome! This project showcases the capabilities of the CodeAct architecture, which is used by [Manus](https://manus.im/), a recently popular AI agent platform.
+This project serves as a demonstration of CodeAct's capabilities in the Web3 space. It shows how an AI agent can effectively analyze and interact with smart contracts by leveraging its ability to write and understand code.
 
 To run the tests:
 ```bash
