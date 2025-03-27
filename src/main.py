@@ -66,9 +66,6 @@ def main():
         agent = initialize_agent()
         print_welcome()
 
-        # Keep track of conversation history
-        messages = []
-
         while True:
             try:
                 # Get user input
@@ -82,17 +79,17 @@ def main():
                     continue
 
                 # Add user message to history
-                messages.append({
+                message ={
                     "role": "user",
                     "content": user_input
-                })
+                }
 
                 # Process the message and stream the response
                 print("\n🤖 ", end="")
                 last_content = ""
                 
                 for typ, chunk in agent.stream(
-                    {"messages": messages},
+                    {"messages": [message]},
                     stream_mode=["messages"],
                     config={"configurable": {"thread_id": 1}},
                 ):
@@ -104,12 +101,6 @@ def main():
 
                 print()  # New line after response
 
-                # Add assistant's response to history only if we have content
-                if last_content:
-                    messages.append({
-                        "role": "assistant",
-                        "content": last_content
-                    })
 
             except KeyboardInterrupt:
                 # Handle Ctrl+C during input or processing
